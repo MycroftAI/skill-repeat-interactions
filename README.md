@@ -1,4 +1,4 @@
-# <img src='https://rawgithub.com/FortAwesome/Font-Awesome/master/advanced-options/raw-svg/solid/redo.svg ' card_color='#22a7f0' width='50' height='50' style='vertical-align:bottom'/> Repeat recent
+# <img src='https://rawgithub.com/FortAwesome/Font-Awesome/master/advanced-options/raw-svg/solid/redo.svg' card_color='#22a7f0' width='50' height='50' style='vertical-align:bottom'/> Repeat recent
 Repeats recent audio transriptions and text to speech outputs
 
 ## About 
