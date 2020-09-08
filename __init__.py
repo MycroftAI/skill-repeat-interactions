@@ -15,50 +15,55 @@
 
 from monotonic import monotonic
 
-from mycroft import MycroftSkill, intent_file_handler
-from mycroft.version import CORE_VERSION_TUPLE
+from mycroft import MycroftSkill, intent_handler
 
 
 class RepeatRecentSkill(MycroftSkill):
+    """Skill to repeat the last Mycroft utterance or percieved user utterance.
+    """
     def __init__(self):
         MycroftSkill.__init__(self)
-        self.last_stt = self.last_tts = None
-        self.last_stt_time = 0
+        self.stt_messages = []
+        self.last_stt_time = (0, 0)
 
     def initialize(self):
+        """Setup handlers for catching user sentences and Mycroft utterances.
+        """
         def on_utterance(message):
-            self.last_stt = message.data['utterances'][0]
-            self.last_stt_time = monotonic()
+            self.stt_messages.append(message.data['utterances'][0])
+            self.stt_messages = self.stt_messages[-2:]
+            self.last_stt_time = self.last_stt_time[1], monotonic()
 
         def on_speak(message):
             self.last_tts = message.data['utterance']
 
-        if CORE_VERSION_TUPLE >= (18, 2, 1):
-            self.add_event('recognizer_loop:utterance', on_utterance)
-            self.add_event('speak', on_speak)
-        self.last_stt = self.last_tts = self.translate('nothing')
+        self.add_event('recognizer_loop:utterance', on_utterance)
+        self.add_event('speak', on_speak)
 
-    @intent_file_handler('repeat.tts.intent')
+        nothing = self.translate('nothing')
+        self.last_tts = nothing
+        self.stt_messages = [nothing]
+
+    @intent_handler('repeat.tts.intent')
     def handle_repeat_tts(self):
         self.speak_dialog('repeat.tts', dict(tts=self.last_tts))
 
-    @intent_file_handler('repeat.stt.intent')
+    @intent_handler('repeat.stt.intent')
     def handle_repeat_stt(self):
-        if monotonic() - self.last_stt_time > 120:
-            self.speak_dialog('repeat.stt.old', dict(stt=self.last_stt))
+        if monotonic() - self.last_stt_time[0] > 120:
+            self.speak_dialog('repeat.stt.old', dict(stt=self.stt_messages[0]))
         else:
-            self.speak_dialog('repeat.stt', dict(stt=self.last_stt))
+            self.speak_dialog('repeat.stt', dict(stt=self.stt_messages[0]))
 
-    @intent_file_handler('did.you.hear.me.intent')
+    @intent_handler('did.you.hear.me.intent')
     def handle_did_you_hear_me(self):
-        if monotonic() - self.last_stt_time > 60:
+        if monotonic() - self.last_stt_time[0] > 60:
             self.speak_dialog('did.not.hear')
             self.speak_dialog('please.repeat', expect_response=True)
         else:
             self.speak_dialog('did.hear')
-            self.speak_dialog('repeat.stt', dict(stt=self.last_stt))
+            self.speak_dialog('repeat.stt', dict(stt=self.stt_messages[0]))
 
 
 def create_skill():
     return RepeatRecentSkill()
-
