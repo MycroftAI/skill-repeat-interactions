@@ -24,7 +24,7 @@ class RepeatRecentSkill(MycroftSkill):
     def __init__(self):
         MycroftSkill.__init__(self)
         self.stt_messages = []
-        self.last_stt_time = 0
+        self.last_stt_time = (0, 0)
 
     def initialize(self):
         """Setup handlers for catching user sentences and Mycroft utterances.
@@ -32,7 +32,7 @@ class RepeatRecentSkill(MycroftSkill):
         def on_utterance(message):
             self.stt_messages.append(message.data['utterances'][0])
             self.stt_messages = self.stt_messages[-2:]
-            self.last_stt_time = monotonic()
+            self.last_stt_time = self.last_stt_time[1], monotonic()
 
         def on_speak(message):
             self.last_tts = message.data['utterance']
@@ -50,14 +50,14 @@ class RepeatRecentSkill(MycroftSkill):
 
     @intent_handler('repeat.stt.intent')
     def handle_repeat_stt(self):
-        if monotonic() - self.last_stt_time > 120:
+        if monotonic() - self.last_stt_time[0] > 120:
             self.speak_dialog('repeat.stt.old', dict(stt=self.stt_messages[0]))
         else:
             self.speak_dialog('repeat.stt', dict(stt=self.stt_messages[0]))
 
     @intent_handler('did.you.hear.me.intent')
     def handle_did_you_hear_me(self):
-        if monotonic() - self.last_stt_time > 60:
+        if monotonic() - self.last_stt_time[0] > 60:
             self.speak_dialog('did.not.hear')
             self.speak_dialog('please.repeat', expect_response=True)
         else:
