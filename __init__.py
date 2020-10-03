@@ -13,9 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from collections import namedtuple
 from monotonic import monotonic
 
 from mycroft import MycroftSkill, intent_handler
+
+
+TtsInfo = namedtuple('TtsInfo', ['origin', 'utterance'])
 
 
 class RepeatRecentSkill(MycroftSkill):
@@ -35,18 +39,23 @@ class RepeatRecentSkill(MycroftSkill):
             self.last_stt_time = self.last_stt_time[1], monotonic()
 
         def on_speak(message):
-            self.last_tts = message.data['utterance']
+            origin = message.data.get('meta', {}).get('skill')
+            utterance = message.data['utterance']
+            self.last_tts = TtsInfo(origin, utterance)
 
         self.add_event('recognizer_loop:utterance', on_utterance)
         self.add_event('speak', on_speak)
 
         nothing = self.translate('nothing')
-        self.last_tts = nothing
+        self.last_tts = TtsInfo(None, nothing)
         self.stt_messages = [nothing]
 
     @intent_handler('repeat.tts.intent')
     def handle_repeat_tts(self):
-        self.speak_dialog('repeat.tts', dict(tts=self.last_tts))
+        if self.last_tts.origin == self.name:
+            self.speak(self.last_tts.utterance)
+        else:
+            self.speak_dialog('repeat.tts', dict(tts=self.last_tts.utterance))
 
     @intent_handler('repeat.stt.intent')
     def handle_repeat_stt(self):
