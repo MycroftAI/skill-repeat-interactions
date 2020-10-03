@@ -14,7 +14,7 @@
 # limitations under the License.
 
 from collections import namedtuple
-from monotonic import monotonic
+from time import monotonic
 
 from mycroft import MycroftSkill, intent_handler
 
